@@ -1,4 +1,4 @@
-# node-phonenumber
+# node-phonenumber [![Build Status](https://travis-ci.org/wajatimur/node-phonenumber.png?branch=master)](https://travis-ci.org/wajatimur/node-phonenumber)
 
 NodeJS port of Google's libPhoneNumber
 
