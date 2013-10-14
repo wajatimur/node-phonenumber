@@ -1,0 +1,45 @@
+{
+    "author": {
+        "name": "Azri Jamil",
+        "email": "azri@nematix.com"
+    },
+  "name": "node-phonenumber",
+  "description": "Google's phone number handling library ported to Node",
+  "version": "0.1.0",
+  "main": "lib/index.js",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "homepage": "http://code.google.com/p/libphonenumber/",
+  "keywords": [
+    "libphonenumber",
+    "phonenumber",
+    "phone",
+    "number",
+    "e164",
+    "standardize",
+    "international"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mattbornski/libphonenumber.git"
+  },
+  "engines": {
+    "node": ">= 0.6"
+  },
+  "dependencies": {
+    "closure": "1.0.2"
+  },
+  "devDependencies": {
+    "mocha": "1.x"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "readme": "# libphonenumber [![Build Status](http://travis-ci.org/mattbornski/libphonenumber.png)](http://travis-ci.org/mattbornski/libphonenumber)\n\nNodeJS port of Google's libphonenumber (thanks to SocialCam), packaged for npm\n\n## Installation\n\n### Installing npm (node package manager)\n```\ncurl http://npmjs.org/install.sh | sh\n```\n\n### Installing libphonenumber\n```\nnpm install libphonenumber\n```\n\n## Example Usage\n\n```javascript\nvar libphonenumber = require('libphonenumber')\n\n//\n\n```\n",
+  "readmeFilename": "README.md",
+  "bugs": {
+    "url": "https://github.com/mattbornski/libphonenumber/issues"
+  },
+}
