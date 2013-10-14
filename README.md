@@ -1,4 +1,4 @@
-# libphonenumber [![Build Status](http://travis-ci.org/mattbornski/libphonenumber.png)](http://travis-ci.org/mattbornski/libphonenumber)
+# libphonenumber
 
 NodeJS port of Google's libPhoneNumber
 
