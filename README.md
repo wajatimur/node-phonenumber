@@ -1,4 +1,4 @@
-# libphonenumber
+# node-phonenumber
 
 NodeJS port of Google's libPhoneNumber
 
