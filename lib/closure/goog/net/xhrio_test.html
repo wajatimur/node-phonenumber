@@ -21,6 +21,7 @@ See the COPYING file for details.
   goog.require('goog.object');
   goog.require('goog.string');
   goog.require('goog.testing.MockClock');
+  goog.require('goog.testing.PropertyReplacer');
   goog.require('goog.testing.jsunit');
   goog.require('goog.testing.net.XhrIo');
   goog.require('goog.testing.recordFunction');
@@ -28,7 +29,13 @@ See the COPYING file for details.
 </script>
 <script>
 
-function MockXmlHttp() {}
+function MockXmlHttp() {
+  /**
+   * The headers for this XmlHttpRequest.
+   * @type {!Object.<string>}
+   */
+  this.headers = {};
+}
 
 MockXmlHttp.prototype.readyState = goog.net.XmlHttp.ReadyState.UNINITIALIZED;
 
@@ -65,7 +72,9 @@ MockXmlHttp.prototype.open = function(verb, uri, async) {
 
 MockXmlHttp.prototype.abort = function() {};
 
-MockXmlHttp.prototype.setRequestHeader = function(key, value) {};
+MockXmlHttp.prototype.setRequestHeader = function(key, value) {
+  this.headers[key] = value;
+};
 
 var lastMockXmlHttp;
 goog.net.XmlHttp.setGlobalFactory(new goog.net.WrapperXmlHttpFactory(
@@ -78,6 +87,7 @@ goog.net.XmlHttp.setGlobalFactory(new goog.net.WrapperXmlHttpFactory(
     }));
 
 
+var propertyReplacer = new goog.testing.PropertyReplacer();
 var clock;
 var originalEntryPoint =
     goog.net.XhrIo.prototype.onReadyStateChangeEntryPoint_;
@@ -88,6 +98,7 @@ function setUp() {
 }
 
 function tearDown() {
+  propertyReplacer.reset();
   clock.dispose();
   goog.net.XhrIo.prototype.onReadyStateChangeEntryPoint_ = originalEntryPoint;
 }
@@ -413,8 +424,8 @@ function testSendFromListener() {
     var e = assertThrows(function() {
       x.send('url2');
     });
-    assertEquals('[goog.net.XhrIo] Object is active with another request',
-        e.message);
+    assertEquals('[goog.net.XhrIo] Object is active with another request=url' +
+        '; newUri=url2', e.message);
   });
 
   x.send('url');
@@ -479,6 +490,24 @@ function testProtectEntryPointCalledOnAsyncSend() {
       errorHandlerCallbackCalled);
 }
 
+function testXHRIsDiposedEvenIfAListenerThrowsAnExceptionOnComplete() {
+  MockXmlHttp.syncSend = false;
+
+  var x = new goog.net.XhrIo;
+
+  goog.events.listen(x, goog.net.EventType.COMPLETE, function(e) {
+      throw Error();
+  }, false, x);
+
+  x.send('url');
+  assertThrows(function() {
+    lastMockXmlHttp.complete();
+  });
+
+  // The XHR should have been disposed, even though the listener threw an
+  // exception.
+  assertNull(x.xhr_);
+}
 
 function testDisposeInternalDoesNotAbortXhrRequestObjectWhenActiveIsFalse() {
   MockXmlHttp.syncSend = false;
@@ -508,6 +537,70 @@ function testCallingAbortFromWithinAbortCallbackDoesntLoop() {
   });
   x.send('url');
   x.abort();
+}
+
+function testPostSetsContentTypeHeader() {
+  var x = new goog.net.XhrIo;
+
+  x.send('url', 'POST', 'content');
+  var headers = lastMockXmlHttp.headers;
+  assertEquals(1, goog.object.getCount(headers));
+  assertEquals(
+      headers[goog.net.XhrIo.CONTENT_TYPE_HEADER],
+      goog.net.XhrIo.FORM_CONTENT_TYPE);
+}
+
+function testNonPostSetsContentTypeHeader() {
+  var x = new goog.net.XhrIo;
+
+  x.send('url', 'PUT', 'content');
+  headers = lastMockXmlHttp.headers;
+  assertEquals(1, goog.object.getCount(headers));
+  assertEquals(
+      headers[goog.net.XhrIo.CONTENT_TYPE_HEADER],
+      goog.net.XhrIo.FORM_CONTENT_TYPE);
+}
+
+function testContentTypeIsTreatedCaseInsensitively() {
+  var x = new goog.net.XhrIo;
+
+  x.send('url', 'POST', 'content', {'content-type': 'testing'});
+
+  assertObjectEquals(
+      'Headers should not be modified since they already contain a ' +
+      'content type definition',
+      {'content-type': 'testing'},
+      lastMockXmlHttp.headers);
+}
+
+function testIsContentTypeHeader_() {
+  assertTrue(goog.net.XhrIo.isContentTypeHeader_('content-type'));
+  assertTrue(goog.net.XhrIo.isContentTypeHeader_('Content-type'));
+  assertTrue(goog.net.XhrIo.isContentTypeHeader_('CONTENT-TYPE'));
+  assertTrue(goog.net.XhrIo.isContentTypeHeader_('Content-Type'));
+  assertFalse(goog.net.XhrIo.isContentTypeHeader_('Content Type'));
+}
+
+function testPostFormDataDoesNotSetContentTypeHeader() {
+  function FakeFormData() {}
+
+  propertyReplacer.set(goog.global, 'FormData', FakeFormData);
+
+  var x = new goog.net.XhrIo;
+  x.send('url', 'POST', new FakeFormData());
+  var headers = lastMockXmlHttp.headers;
+  assertTrue(goog.object.isEmpty(headers));
+}
+
+function testNonPostFormDataDoesNotSetContentTypeHeader() {
+  function FakeFormData() {}
+
+  propertyReplacer.set(goog.global, 'FormData', FakeFormData);
+
+  var x = new goog.net.XhrIo;
+  x.send('url', 'PUT', new FakeFormData());
+  headers = lastMockXmlHttp.headers;
+  assertTrue(goog.object.isEmpty(headers));
 }
 
 function testFactoryInjection() {
@@ -628,6 +721,72 @@ function testGetResponse() {
 
   x.xhr_.response = 'resp';
   assertEquals('resp', x.getResponse());
+}
+
+function testGetResponseHeaders() {
+  var x = new goog.net.XhrIo();
+
+  // No XHR yet
+  assertEquals(0, goog.object.getCount(x.getResponseHeaders()));
+
+  // Simulate an XHR with 2 headers.
+  var headersRaw = 'test1: foo\r\ntest2: bar';
+
+  propertyReplacer.set(x, 'getAllResponseHeaders',
+                       goog.functions.constant(headersRaw));
+
+  var headers = x.getResponseHeaders();
+  assertEquals(2, goog.object.getCount(headers));
+  assertEquals('foo', headers['test1']);
+  assertEquals('bar', headers['test2']);
+}
+
+function testGetResponseHeadersWithColonInValue() {
+  var x = new goog.net.XhrIo();
+
+  // Simulate an XHR with a colon in the http header value.
+  var headersRaw = 'test1: f:o:o';
+
+  propertyReplacer.set(x, 'getAllResponseHeaders',
+                       goog.functions.constant(headersRaw));
+
+  var headers = x.getResponseHeaders();
+  assertEquals(1, goog.object.getCount(headers));
+  assertEquals('f:o:o', headers['test1']);
+}
+
+function testGetResponseHeadersMultipleValuesForOneKey() {
+  var x = new goog.net.XhrIo();
+
+  // No XHR yet
+  assertEquals(0, goog.object.getCount(x.getResponseHeaders()));
+
+  // Simulate an XHR with 2 headers.
+  var headersRaw = 'test1: foo\r\ntest1: bar';
+
+  propertyReplacer.set(x, 'getAllResponseHeaders',
+                       goog.functions.constant(headersRaw));
+
+  var headers = x.getResponseHeaders();
+  assertEquals(1, goog.object.getCount(headers));
+  assertEquals('foo, bar', headers['test1']);
+}
+
+function testGetResponseHeadersEmptyHeader() {
+  var x = new goog.net.XhrIo();
+
+  // No XHR yet
+  assertEquals(0, goog.object.getCount(x.getResponseHeaders()));
+
+  // Simulate an XHR with 2 headers, the last of which is empty.
+  var headersRaw = 'test2: bar\r\n';
+
+  propertyReplacer.set(x, 'getAllResponseHeaders',
+                       goog.functions.constant(headersRaw));
+
+  var headers = x.getResponseHeaders();
+  assertEquals(1, goog.object.getCount(headers));
+  assertEquals('bar', headers['test2']);
 }
 
 </script>

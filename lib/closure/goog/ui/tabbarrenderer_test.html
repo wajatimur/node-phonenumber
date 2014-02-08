@@ -15,8 +15,8 @@ Author: attila@google.com (Attila Bodis)
   <script src="../base.js"></script>
   <script>
     goog.require('goog.dom');
-    goog.require('goog.dom.a11y.Role');
-    goog.require('goog.dom.classes');
+    goog.require('goog.a11y.aria.Role');
+    goog.require('goog.dom.classlist');
     goog.require('goog.testing.jsunit');
     goog.require('goog.ui.Container.Orientation');
     goog.require('goog.ui.Tab');
@@ -53,7 +53,7 @@ Author: attila@google.com (Attila Bodis)
 
     function testGetAriaRole() {
       assertEquals('getAriaRole() must return expected value',
-          goog.dom.a11y.Role.TAB_LIST, renderer.getAriaRole());
+          goog.a11y.aria.Role.TAB_LIST, renderer.getAriaRole());
     }
 
     function testCreateDom() {
@@ -62,7 +62,7 @@ Author: attila@google.com (Attila Bodis)
       assertEquals('Created element must be a DIV', 'DIV', element.tagName);
       assertSameElements('Created element must have expected class names',
           ['goog-tab-bar', 'goog-tab-bar-horizontal', 'goog-tab-bar-top'],
-          goog.dom.classes.get(element));
+          goog.dom.classlist.get(element));
     }
 
     function testDecorate() {
@@ -75,7 +75,7 @@ Author: attila@google.com (Attila Bodis)
       // TODO(attila): Fix this!
       assertSameElements('Decorated element must have expected class names',
           ['goog-tab-bar', 'goog-tab-bar-start'],
-          goog.dom.classes.get(element));
+          goog.dom.classlist.get(element));
     }
 
     function testSetStateFromClassName() {

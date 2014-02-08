@@ -168,6 +168,12 @@ function testRemoveKeyFromTrie() {
   assertTrue('get "x" should be defined', 'x' in trie.childNodes_);
   assertFalse('get "y" should be undefined',
       'y' in trie.childNodes_['x'].childNodes_);
+
+  trie.add('akey', 'value1');
+  trie.add('akey1', 'value2');
+  trie.remove('akey1');
+  assertEquals('get "akey", should be "value1"', 'value1', trie.get('akey'));
+  assertUndefined('get "akey1", should be undefined', trie.get('akey1'));
 }
 
 function testRemoveKeyFromTrieWithNulls() {
@@ -268,6 +274,83 @@ function testTrieContainsKey() {
   assertFalse('containsKey, should not contain "hi"', trie.containsKey('hi'));
   assertFalse('containsKey, should not contain "null"',
       trie.containsKey('null'));
+}
+
+function testTrieContainsPrefix() {
+
+  // Empty trie.
+  var trie = new goog.structs.Trie();
+  assertFalse('containsPrefix, should not contain ""', trie.containsPrefix(''));
+  assertFalse('containsPrefix, should not contain "any"',
+      trie.containsPrefix('any'));
+  trie.add('key', 'value');
+  assertTrue('containsPrefix, should contain ""', trie.containsPrefix(''));
+
+  // Non-empty trie.
+  trie = makeTrie();
+  assertTrue('containsPrefix, should contain ""', trie.containsPrefix(''));
+  assertFalse('containsPrefix, should not contain "blah"',
+      trie.containsPrefix('blah'));
+  assertTrue('containsPrefix, should contain "h"', trie.containsPrefix('h'));
+  assertTrue('containsPrefix, should contain "hello"',
+      trie.containsPrefix('hello'));
+  assertTrue('containsPrefix, should contain "hello, world"',
+      trie.containsPrefix('hello, world'));
+  assertFalse('containsPrefix, should not contain "hello, world!"',
+      trie.containsPrefix('hello, world!'));
+  assertTrue('containsPrefix, should contain "nu"',
+      trie.containsPrefix('nu'));
+  assertTrue('containsPrefix, should contain "null"',
+      trie.containsPrefix('null'));
+  assertTrue('containsPrefix, should contain "empty value"',
+      trie.containsPrefix('empty value'));
+
+  // Remove nodes.
+  trie.remove('');
+  assertTrue('containsPrefix, should contain ""', trie.containsPrefix(''));
+  trie.remove('hi');
+  assertTrue('containsPrefix, should contain "h"', trie.containsPrefix('h'));
+  assertFalse('containsPrefix, should not contain "hi"',
+      trie.containsPrefix('hi'));
+  trie.remove('hello');
+  trie.remove('hello, world');
+  assertFalse('containsPrefix, should not contain "h"',
+      trie.containsPrefix('h'));
+  assertFalse('containsPrefix, should not contain "hello"',
+      trie.containsPrefix('hello'));
+
+  // Remove all nodes.
+  trie.remove('empty value');
+  trie.remove('zero');
+  trie.remove('object');
+  trie.remove('null');
+  trie.remove('world');
+  assertFalse('containsPrefix, should not contain ""',
+      trie.containsPrefix(''));
+  assertFalse('containsPrefix, should not contain "h"',
+      trie.containsPrefix('h'));
+  assertFalse('containsPrefix, should not contain "hi"',
+      trie.containsPrefix('hi'));
+
+  // Add some new nodes.
+  trie.add('hi', 'value');
+  trie.add('null', 'value');
+  assertTrue('containsPrefix, should contain ""', trie.containsPrefix(''));
+  assertTrue('containsPrefix, should contain "h"', trie.containsPrefix('h'));
+  assertTrue('containsPrefix, should contain "hi"', trie.containsPrefix('hi'));
+  assertFalse('containsPrefix, should not contain "hello"',
+      trie.containsPrefix('hello'));
+  assertFalse('containsPrefix, should not contain "zero"',
+      trie.containsPrefix('zero'));
+
+  // Clear the trie.
+  trie.clear();
+  assertFalse('containsPrefix, should not contain ""',
+      trie.containsPrefix(''));
+  assertFalse('containsPrefix, should not contain "h"',
+      trie.containsPrefix('h'));
+  assertFalse('containsPrefix, should not contain "hi"',
+      trie.containsPrefix('hi'));
 }
 
 function testTrieContainsValue() {

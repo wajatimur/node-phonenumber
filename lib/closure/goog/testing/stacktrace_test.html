@@ -13,6 +13,7 @@ See the COPYING file for details.
 <title>Closure Unit Tests - goog.testing.stacktrace</title>
 <script src="../base.js"></script>
 <script>
+  goog.require('goog.functions');
   goog.require('goog.string');
   goog.require('goog.testing.ExpectedFailures');
   goog.require('goog.testing.PropertyReplacer');
@@ -49,7 +50,7 @@ function testParseStackFrameInChrome() {
   frameString = '    at Object.assert (file:///.../asserts.js:29:10)';
   frame = goog.testing.stacktrace.parseStackFrame_(frameString);
   expected = new goog.testing.stacktrace.Frame('Object', 'assert', '', '',
-      'file:///.../asserts.js:29:10')
+      'file:///.../asserts.js:29:10');
   assertObjectEquals('context object + function name + url', expected, frame);
 
   frameString = '    at http://www.example.com/jsunit.js:117:13';
@@ -85,6 +86,73 @@ function testParseStackFrameInChrome() {
   frame = goog.testing.stacktrace.parseStackFrame_(frameString);
   expected = new goog.testing.stacktrace.Frame('', 'foo', '', '', 'file://bar');
   assertObjectEquals('eval', expected, frame);
+}
+
+function testParseStackFrameInOpera() {
+  var frameString = '@';
+  var frame = goog.testing.stacktrace.parseStackFrame_(frameString);
+  var expected = new goog.testing.stacktrace.Frame('', '', '', '', '');
+  assertObjectEquals('empty frame', expected, frame);
+
+  frameString = '@javascript:console.log(Error().stack):1';
+  frame = goog.testing.stacktrace.parseStackFrame_(frameString);
+  expected = new goog.testing.stacktrace.Frame('', '', '', '',
+      'javascript:console.log(Error().stack):1');
+  assertObjectEquals('javascript path only', expected, frame);
+
+  frameString = '@file:///foo:42';
+  frame = goog.testing.stacktrace.parseStackFrame_(frameString);
+  expected = new goog.testing.stacktrace.Frame('', '', '', '',
+      'file:///foo:42');
+  assertObjectEquals('path only', expected, frame);
+
+  // (function go() { throw Error() })()
+  // var c = go; c()
+  frameString = 'go([arguments not available])@';
+  frame = goog.testing.stacktrace.parseStackFrame_(frameString);
+  expected = new goog.testing.stacktrace.Frame('', 'go', '',
+      '([arguments not available])', '');
+  assertObjectEquals('name and empty path', expected, frame);
+
+  frameString = 'go([arguments not available])@file:///foo:42';
+  frame = goog.testing.stacktrace.parseStackFrame_(frameString);
+  expected = new goog.testing.stacktrace.Frame('', 'go', '',
+      '([arguments not available])', 'file:///foo:42');
+  assertObjectEquals('name and path', expected, frame);
+
+  // (function() { throw Error() })()
+  frameString =
+      '<anonymous function>([arguments not available])@file:///foo:42';
+  frame = goog.testing.stacktrace.parseStackFrame_(frameString);
+  expected = new goog.testing.stacktrace.Frame('', '', '',
+      '([arguments not available])', 'file:///foo:42');
+  assertObjectEquals('anonymous function', expected, frame);
+
+  // var b = {foo: function() { throw Error() }}
+  frameString = '<anonymous function: foo>()@file:///foo:42';
+  frame = goog.testing.stacktrace.parseStackFrame_(frameString);
+  expected = new goog.testing.stacktrace.Frame(
+      '', 'foo', '', '()', 'file:///foo:42');
+  assertObjectEquals('object literal function', expected, frame);
+
+  // var c = {}; c.foo = function() { throw Error() }
+  frameString = '<anonymous function: c.foo>()@file:///foo:42';
+  frame = goog.testing.stacktrace.parseStackFrame_(frameString);
+  expected = new goog.testing.stacktrace.Frame(
+      'c', 'foo', '', '()', 'file:///foo:42');
+  assertObjectEquals('named object literal function', expected, frame);
+
+  frameString = '<anonymous function: Foo.prototype.bar>()@';
+  frame = goog.testing.stacktrace.parseStackFrame_(frameString);
+  expected = new goog.testing.stacktrace.Frame(
+      'Foo.prototype', 'bar', '', '()', '');
+  assertObjectEquals('prototype function', expected, frame);
+
+  frameString = '<anonymous function: goog.Foo.prototype.bar>()@';
+  frame = goog.testing.stacktrace.parseStackFrame_(frameString);
+  expected = new goog.testing.stacktrace.Frame(
+      'goog.Foo.prototype', 'bar', '', '()', '');
+  assertObjectEquals('namespaced prototype function', expected, frame);
 }
 
 // All test strings are parsed with the conventional and long
@@ -180,9 +248,9 @@ function testFollowCallChain() {
   // Opera before version 10 doesn't support the caller attribute. In that
   // browser followCallChain_() returns empty stack trace.
   expectedFailures.expectFailureFor(goog.userAgent.OPERA &&
-      !goog.userAgent.isVersion('10'));
+      !goog.userAgent.isVersionOrHigher('10'));
   try {
-    assertTrue('The stack trace consists of >=2 frames', frames.length >= 2)
+    assertTrue('The stack trace consists of >=2 frames', frames.length >= 2);
   } catch (e) {
     expectedFailures.handleException(e);
   }
@@ -222,6 +290,77 @@ function testParsingLongStackTrace() {
   expected = new goog.testing.stacktrace.Frame(
       '', 'longFrame', '', longArg, 'http://google.com/somescript:0');
   assertObjectEquals('exception name only', expected, frames[1]);
+}
+
+function testParseStackFrameInIE10() {
+  var frameString = '   at foo (http://bar:4000/bar.js:150:3)';
+  var frame = goog.testing.stacktrace.parseStackFrame_(frameString);
+  var expected = new goog.testing.stacktrace.Frame('', 'foo', '', '',
+      'http://bar:4000/bar.js:150:3');
+  assertObjectEquals('name and path', expected, frame);
+
+  frameString = '   at Anonymous function (http://bar:4000/bar.js:150:3)';
+  frame = goog.testing.stacktrace.parseStackFrame_(frameString);
+  expected = new goog.testing.stacktrace.Frame('', 'Anonymous function', '', '',
+      'http://bar:4000/bar.js:150:3');
+  assertObjectEquals('Anonymous function', expected, frame);
+
+  frameString = '   at Global code (http://bar:4000/bar.js:150:3)';
+  frame = goog.testing.stacktrace.parseStackFrame_(frameString);
+  expected = new goog.testing.stacktrace.Frame('', 'Global code', '', '',
+      'http://bar:4000/bar.js:150:3');
+  assertObjectEquals('Global code', expected, frame);
+
+  frameString = '   at foo (eval code:150:3)';
+  frame = goog.testing.stacktrace.parseStackFrame_(frameString);
+  expected = new goog.testing.stacktrace.Frame('', 'foo', '', '',
+      'eval code:150:3');
+  assertObjectEquals('eval code', expected, frame);
+
+  frameString = '   at eval code (eval code:150:3)';
+  frame = goog.testing.stacktrace.parseStackFrame_(frameString);
+  expected = new goog.testing.stacktrace.Frame('', 'eval code', '', '',
+      'eval code:150:3');
+  assertObjectEquals('nested eval', expected, frame);
+}
+
+// Verifies that retrieving the stack trace works when the 'stack' field of an
+// exception contains an array of CallSites instead of a string. This is the
+// case when running in a lightweight V8 runtime (for instance, in gjstests),
+// as opposed to a browser environment.
+function testGetStackFrameWithV8CallSites() {
+  // A function to create V8 CallSites. Note that CallSite is an extern and thus
+  // cannot be mocked with closure mocks.
+  function createCallSite(functionName, fileName, lineNumber, colNumber) {
+    return {
+      getFunctionName: goog.functions.constant(functionName),
+      getFileName: goog.functions.constant(fileName),
+      getLineNumber: goog.functions.constant(lineNumber),
+      getColumnNumber: goog.functions.constant(colNumber)
+    };
+  }
+
+  // Mock the goog.testing.stacktrace.getStack_ function, which normally
+  // triggers an exception for the purpose of reading and returning its stack
+  // trace. Here, pretend that V8 provided an array of CallSites instead of the
+  // string that browsers provide.
+  stubs.set(goog.testing.stacktrace, 'getNativeStack_', function() {
+    return [
+      createCallSite('fn1', 'file1', 1, 2),
+      createCallSite('fn2', 'file2', 3, 4),
+      createCallSite('fn3', 'file3', 5, 6)
+    ];
+  });
+
+  // Retrieve the stacktrace. This should translate the array of CallSites into
+  // a single multi-line string.
+  var stackTrace = goog.testing.stacktrace.get();
+
+  // Make sure the stack trace was translated correctly.
+  var frames = stackTrace.split('\n');
+  assertEquals(frames[0], '> fn1 at file1:1:2');
+  assertEquals(frames[1], '> fn2 at file2:3:4');
+  assertEquals(frames[2], '> fn3 at file3:5:6');
 }
 
 </script>

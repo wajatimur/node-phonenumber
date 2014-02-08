@@ -42,7 +42,7 @@ See the COPYING file for details.
     goog.inherits(TestTooltip, goog.ui.Tooltip);
 
 
-    /** {@override} */
+    /** @override */
     TestTooltip.prototype.getPositioningStrategy = function() {
       return new goog.positioning.AbsolutePosition(13, 17);
     };
@@ -324,16 +324,6 @@ See the COPYING file for details.
 
       ttNested.onHide_();
       ttNested.dispose();
-    }
-
-    function testMemoryLeak() {
-      var listeners = goog.events.getTotalListenerCount();
-      var anchor = dom.createElement('div');
-      var tooltip = new goog.ui.Tooltip(anchor, '');
-      tooltip.setVisible(true);
-      tooltip.dispose();
-      assertEquals('no event listeners leaked', listeners,
-                   goog.events.getTotalListenerCount());
     }
 
     function testPosition() {

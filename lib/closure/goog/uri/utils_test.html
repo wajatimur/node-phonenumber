@@ -17,6 +17,7 @@ See the COPYING file for details.
 <script src="../base.js"></script>
 <script>
   goog.require('goog.functions');
+  goog.require('goog.string');
   goog.require('goog.testing.PropertyReplacer');
   goog.require('goog.testing.jsunit');
   goog.require('goog.uri.utils');
@@ -50,7 +51,14 @@ function testSplit() {
   assertEquals('fragment', utils.getFragmentEncoded(uri));
   assertEquals('fragment', utils.getFragment(uri));
 
-  assertNull(utils.getDomain('http://!!!'));
+  assertEquals(utils.getDomain('http://[2607:f8b0:4006:802::1006]'),
+      '[2607:f8b0:4006:802::1006]');
+  assertEquals(utils.getDomain('http://[2607:f8b0:4006:802::1006]:80'),
+      '[2607:f8b0:4006:802::1006]');
+  assertEquals(utils.getPort('http://[2607:f8b0:4006:802::1006]:80'), 80);
+  assertEquals(utils.getDomain('http://[2607]:80/?q=]'), '[2607]');
+  assertEquals(utils.getDomain('http://!!!'), '!!!');
+  assertNull(utils.getPath('http://!!!'));
   assertNull(utils.getScheme('www.x.com:80'));
   assertEquals('Query data with no fragment identifier', 'foo=bar&baz=bin',
       utils.getQueryData('http://google.com?foo=bar&baz=bin'));
@@ -74,6 +82,15 @@ function testSplitRelativeUri() {
   assertEquals('q=query&hl=en', utils.getQueryData(uri));
   assertEquals('fragment', utils.getFragmentEncoded(uri));
   assertEquals('fragment', utils.getFragment(uri));
+}
+
+function testSplitBadAuthority() {
+  // This URL has a syntax error per the RFC (port number must be digits, and
+  // host cannot contain a colon except in [...]). This test is solely to
+  // 'document' the current behavior, which may affect application handling
+  // of erroneous URLs.
+  assertEquals(utils.getDomain('http://host:port/'), 'host:port');
+  assertNull(utils.getPort('http://host:port/'));
 }
 
 function testSplitIntoHostAndPath() {
@@ -264,7 +281,7 @@ function testSameDomainNoDomain() {
 
 /**
  * Simple class with a constant toString.
- * @param {string} The result of toString.
+ * @param {string} stringValue The result of toString.
  * @constructor
  */
 function HasString(stringValue) {
@@ -272,6 +289,7 @@ function HasString(stringValue) {
 }
 
 
+/** @override */
 HasString.prototype.toString = function() {
   return this.value_;
 };
@@ -343,6 +361,24 @@ function testAppendParams() {
 }
 
 
+function testValuelessParam() {
+  assertEquals('http://foo.com?q',
+      utils.appendParam('http://foo.com', 'q'));
+  assertEquals('http://foo.com?q',
+      utils.appendParam('http://foo.com', 'q', null /* opt_value */));
+  assertEquals('http://foo.com?q#preserve',
+      utils.appendParam('http://foo.com#preserve', 'q'));
+  assertEquals('should tolerate a lone question mark',
+      'http://foo.com?q',
+      utils.appendParam('http://foo.com?', 'q'));
+  assertEquals('http://foo.com?q=1&r',
+      utils.appendParam('http://foo.com?q=1', 'r'));
+  assertEquals('http://foo.com?q=1&r=2&s#preserve',
+      utils.appendParam('http://foo.com?q=1&r=2#preserve', 's'));
+  assertTrue(utils.hasParam('http://foo.com?q=1&r=2&s#preserve', 's'));
+}
+
+
 function testAppendParamsAsArray() {
   assertEquals('http://foo.com?q=1&r=2&s=3&s=4#preserve',
       utils.appendParams('http://foo.com#preserve',
@@ -396,13 +432,6 @@ function testMultiParamSkipsNullParams() {
       utils.appendParams('foo.com', 'a', [null], 'b', null, 'c', undefined));
   assertEquals('empty strings should NOT be skipped', 'foo.com?a&b',
       utils.appendParams('foo.com', 'a', [''], 'b', ''));
-}
-
-
-function testAppendSingleParamDoesAppendNullParams() {
-  // For the single-param function, exactly 1 parameter will always be appended.
-  assertEquals('appendParam does not skip null params', 'foo.com?a=null',
-      utils.appendParam('foo.com', 'a', null));
 }
 
 

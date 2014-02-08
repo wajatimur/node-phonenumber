@@ -13,9 +13,9 @@ See the COPYING file for details.
 <title>Closure Unit Tests - goog.ui.media.Youtube</title>
 <script src="../../base.js"></script>
 <script>
-  goog.require('goog.debug.Logger');
   goog.require('goog.dom');
   goog.require('goog.events');
+  goog.require('goog.log');
   goog.require('goog.testing.LooseMock');
   goog.require('goog.testing.jsunit');
   goog.require('goog.ui.Component');
@@ -58,6 +58,14 @@ See the COPYING file for details.
     assertExtractsCorrectly(
         'uddeBVmKTqE',
         'http://www.youtube.com/watch?v=uddeBVmKTqE');
+    // a simple mobile link
+    assertExtractsCorrectly(
+        'uddeBVmKTqE',
+        'http://m.youtube.com/watch?v=uddeBVmKTqE');
+    // a secure mobile link
+    assertExtractsCorrectly(
+        'uddeBVmKTqE',
+        'https://m.youtube.com/watch?v=uddeBVmKTqE');
     // a channel link
     assertExtractsCorrectly(
         '4Pb9e1uu3EQ',
@@ -203,7 +211,7 @@ See the COPYING file for details.
     assertEquals(1, caption.length);
 
     var flash = goog.dom.getElementsByTagNameAndClass('div',
-        goog.ui.media.FlashObject.CSS_CLASS. parent);
+        goog.ui.media.FlashObject.CSS_CLASS, parent);
     assertEquals(1, flash.length);
 
     control.setSelected(false);
@@ -232,6 +240,17 @@ See the COPYING file for details.
     var flash = goog.dom.getElementsByTagNameAndClass('div',
         goog.ui.media.FlashObject.CSS_CLASS, parent);
     assertEquals(1, flash.length);
+  }
+
+  function testUrlMatcher() {
+    var matcher = goog.ui.media.YoutubeModel.MATCHER_;
+    assertTrue(matcher.test('http://www.youtube.com/watch?v=55D-ybnYQSs'));
+    assertTrue(matcher.test('https://youtube.com/watch?v=55D-ybnYQSs'));
+    assertTrue(matcher.test('https://youtube.com/watch?blarg=blop&v=55D-ybnYQSs'));
+    assertTrue(matcher.test('http://www.youtube.com/watch?v=55D-ybnYQSs#wee'));
+
+    assertFalse(matcher.test('http://www.cnn.com/watch?v=55D-ybnYQSs#wee'));
+    assertFalse(matcher.test('ftp://www.youtube.com/watch?v=55D-ybnYQSs#wee'));
   }
 
   function assertExtractsCorrectly(expectedVideoId, url) {

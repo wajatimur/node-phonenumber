@@ -25,6 +25,7 @@ This test has not yet been updated to run on IE8. See http://b/hotlist?id=36311
   goog.require('goog.testing.PropertyReplacer');
   goog.require('goog.userAgent.product');
   goog.require('goog.userAgent.product.isVersion');
+  goog.require('goog.userAgentTestUtil');
 </script>
 </head>
 <body>
@@ -45,20 +46,7 @@ This test has not yet been updated to run on IE8. See http://b/hotlist?id=36311
   }
 
   function updateUserAgentUtils() {
-    goog.userAgent.init_();
-
-    // Unfortunately we can't isolate the useragent setting in a function
-    // we can call, because things rely on it compiling to nothing when
-    // one of the ASSUME flags is set, and the compiler isn't smart enough
-    // to do that when the setting is done inside a function that's inlined.
-    goog.userAgent.OPERA = goog.userAgent.detectedOpera_;
-    goog.userAgent.IE = goog.userAgent.detectedIe_;
-    goog.userAgent.GECKO = goog.userAgent.detectedGecko_;
-    goog.userAgent.WEBKIT = goog.userAgent.detectedWebkit_;
-    goog.userAgent.MOBILE = goog.userAgent.detectedMobile_;
-    goog.userAgent.SAFARI = goog.userAgent.WEBKIT;
-
-    goog.userAgent.VERSION = goog.userAgent.determineVersion_();
+    goog.userAgentTestUtil.reinitializeUserAgent();
 
     goog.userAgent.product.init_();
     // In an ideal world, this assignment would be just a function in
@@ -109,6 +97,14 @@ This test has not yet been updated to run on IE8. See http://b/hotlist?id=36311
     });
   }
 
+  function assertBrowserAndVersion(userAgent, browser, version) {
+    mockAgent.setUserAgentString(userAgent);
+    updateUserAgentUtils();
+    assertIsBrowser(browser);
+    assertEquals('User agent should have this version',
+                 version, goog.userAgent.VERSION);
+  }
+
   /**
    * @param {Array.<{
    *           ua: string,
@@ -141,6 +137,14 @@ This test has not yet been updated to run on IE8. See http://b/hotlist?id=36311
          {num: '7.0', truth: true},
          {num: 7.1, truth: false},
          {num: 8, truth: false}
+       ]
+      },
+      {ua: 'Mozilla/5.0 (Windows NT 6.3; Trident/7.0; rv:11.0) like Gecko',
+       versions: [
+         {num: 10, truth: true},
+         {num: 11, truth: true},
+         {num: '11.0', truth: true},
+         {num: '12', truth: false}
        ]
       }
     ];
@@ -178,7 +182,7 @@ This test has not yet been updated to run on IE8. See http://b/hotlist?id=36311
 
   function testFirefox() {
     var userAgents = [
-      {ua: 'Mozilla/6.0 (Macintosh; U; PPC Mac OS X Mach-O; en-US; ' +
+     {ua: 'Mozilla/6.0 (Macintosh; U; PPC Mac OS X Mach-O; en-US; ' +
            'rv:2.0.0.0) Gecko/20061028 Firefox/3.0',
        versions: [
          {num: 2, truth: true},
@@ -192,9 +196,26 @@ This test has not yet been updated to run on IE8. See http://b/hotlist?id=36311
          {num: '2.0.4', truth: true},
          {num: 3, truth: false},
          {num: '3.5.3', truth: false}
+       ]},
+      {ua: 'Mozilla/5.0 (X11; Linux i686; rv:6.0) Gecko/6.0 Firefox/6.0',
+       versions: [
+         {num: 6, truth: true},
+         {num: '6.0', truth: true},
+         {num: 7, truth: false},
+         {num: '7.0', truth: false}
        ]}
     ];
+
     checkEachUserAgentDetected(userAgents, 'FIREFOX');
+
+    // Mozilla reported to us that they plan this UA format starting
+    // in Firefox 13.
+    // See bug at https://bugzilla.mozilla.org/show_bug.cgi?id=588909
+    // and thread at http://goto.google.com/pfltz
+    mockAgent.setNavigator({product: 'Gecko'});
+    assertBrowserAndVersion(
+        'Mozilla/5.0 (X11; Linux i686; rv:6.0) Gecko/6.0 Firefox/6.0',
+        'FIREFOX', '6.0');
   }
 
   function testCamino() {
@@ -235,7 +256,17 @@ This test has not yet been updated to run on IE8. See http://b/hotlist?id=36311
          {num: '0.2.153', truth: true},
          {num: '4.1.223.13', truth: false},
          {num: '4.0.223.10', truth: true}
-       ]}
+       ]},
+      {ua: 'Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B)' +
+           'AppleWebKit/535.19 (KHTML, like Gecko) ' +
+           'Chrome/18.0.1025.133 Mobile' +
+           'Safari/535.19',
+       versions: [
+         {num: 18, truth: true},
+         {num: '0.2.153', truth: true},
+         {num: 29, truth: false},
+         {num: '18.0.1025.133', truth: true}
+       ]},
     ];
     checkEachUserAgentDetected(userAgents, 'CHROME');
   }
@@ -335,8 +366,8 @@ This test has not yet been updated to run on IE8. See http://b/hotlist?id=36311
            'Safari/523.12.2',
        versions: [
          {num: 0.5, truth: true},
-         {num: 3, truth: true},
-         {num: '3.0.4', truth: true},
+         {num: 1, truth: true},
+         {num: '1.0', truth: true},
          {num: '3.0.12', truth: false}
        ]}
     ];

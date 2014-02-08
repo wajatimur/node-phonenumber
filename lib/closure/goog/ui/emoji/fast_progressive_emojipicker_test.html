@@ -12,6 +12,7 @@ See the COPYING file for details.
 <script src="../../base.js"></script>
 <script>
   goog.require('goog.dom');
+  goog.require('goog.dom.classlist');
   goog.require('goog.testing.AsyncTestCase');
   goog.require('goog.testing.jsunit');
   goog.require('goog.ui.emoji.EmojiPicker');
@@ -128,7 +129,7 @@ function checkPostLoadStructureForFastLoadProgressivePicker(palette,
     var emojiInfo = emoji[1][i];
     var cell = palette.getSelectedItem();
     var id = cell.getAttribute(goog.ui.emoji.Emoji.ATTRIBUTE);
-    var inner = cell.firstChild;
+    var inner = /** @type {Element} */ (cell.firstChild);
 
     // Check that the cell is a div wrapped around something else, and that the
     // outer div contains the goomoji attribute
@@ -157,7 +158,7 @@ function checkPostLoadStructureForFastLoadProgressivePicker(palette,
         if (cssClass) {
           assertEquals("DIV", inner.tagName);
           assertTrue('Sprite should have its CSS class set',
-              goog.dom.classes.has(inner, cssClass));
+              goog.dom.classlist.contains(inner, cssClass));
         } else {
           // There's an inner div wrapping an img tag
           assertEquals("DIV", inner.tagName);
@@ -212,8 +213,6 @@ testCase.setUpPage = function() {
   // Now we load the animated emoji and check the structure again. The animated
   // emoji will be different.
   this.picker.manuallyLoadAnimatedEmoji();
-
-  this.add(new goog.testing.TestCase.Test('test', this.testStructure, this));
 };
 
 testCase.onImageLoaded = function(e) {
@@ -231,7 +230,9 @@ testCase.tearDownPage = function() {
   this.picker.dispose();
 };
 
-testCase.testStructure = function() {
+
+
+testCase.addNewTest('testStructure', function() {
   // Bug 2280968
     this.log('Not testing emojipicker structure');
     return;
@@ -239,16 +240,11 @@ testCase.testStructure = function() {
   this.log('Testing emojipicker structure');
   checkPostLoadStructureForFastLoadProgressivePicker(this.palette,
       spritedEmoji2, this.images);
-};
-
-function setUpPage() {
-  testCase.runTests();
-}
+});
 
 // Standalone Closure Test Runner.
-if (typeof G_testRunner != 'undefined') {
-  G_testRunner.initialize(testCase);
-}
+G_testRunner.initialize(testCase);
+
 
 
 </script>

@@ -15,6 +15,7 @@ See the COPYING file for details.
 <script>
   goog.require('goog.proto2.Descriptor');
   goog.require('goog.proto2.FieldDescriptor');
+  goog.require('goog.proto2.Message');
   goog.require('goog.testing.jsunit');
 </script>
 </head>
@@ -26,7 +27,7 @@ function testFieldDescriptorConstruction() {
   var fieldDescriptor = new goog.proto2.FieldDescriptor(messageType, 10, {
     name: 'test',
     repeated: true,
-    fieldType: 7,
+    fieldType: goog.proto2.FieldDescriptor.FieldType.INT32,
     type: Number
   });
 
@@ -35,29 +36,40 @@ function testFieldDescriptorConstruction() {
 
   assertEquals(true, fieldDescriptor.isRepeated());
 
-  assertEquals(7, fieldDescriptor.getFieldType());
+  assertEquals(goog.proto2.FieldDescriptor.FieldType.INT32,
+      fieldDescriptor.getFieldType());
   assertEquals(Number, fieldDescriptor.getNativeType());
   assertEquals(0, fieldDescriptor.getDefaultValue());
 }
 
-function testFieldDescriptorConstruction2() {
+function testGetDefaultValueOfString() {
   var fieldDescriptor = new goog.proto2.FieldDescriptor({}, 10, {
     name: 'test',
-    fieldType: 7,
+    fieldType: goog.proto2.FieldDescriptor.FieldType.STRING,
     type: String
   });
 
   assertEquals('', fieldDescriptor.getDefaultValue());
 }
 
-function testFieldDescriptorConstruction3() {
+function testGetDefaultValueOfBool() {
   var fieldDescriptor = new goog.proto2.FieldDescriptor({}, 10, {
     name: 'test',
-    fieldType: 7,
+    fieldType: goog.proto2.FieldDescriptor.FieldType.BOOL,
     type: Boolean
   });
 
   assertEquals(false, fieldDescriptor.getDefaultValue());
+}
+
+function testGetDefaultValueOfInt64() {
+  var fieldDescriptor = new goog.proto2.FieldDescriptor({}, 10, {
+    name: 'test',
+    fieldType: goog.proto2.FieldDescriptor.FieldType.INT64,
+    type: String
+  });
+
+  assertEquals('0', fieldDescriptor.getDefaultValue());
 }
 
 function testRepeatedField() {
@@ -102,20 +114,27 @@ function testOptionalField() {
 }
 
 function testContaingType() {
-  var messageType = {};
-  var fieldDescriptor = new goog.proto2.FieldDescriptor(messageType, 10, {
-    name: 'test',
-    fieldType: 7,
-    type: Number
-  });
+  var MessageType = function() {
+    goog.base(this);
+  };
+  goog.inherits(MessageType, goog.proto2.Message);
 
-  var descriptor = new goog.proto2.Descriptor(messageType, {
-    name: 'test_message',
-    fullName: 'this.is.a.test_message'
-  }, [fieldDescriptor]);
+  var descriptorObj = {
+    0: {
+      name: 'test_message',
+      fullName: 'this.is.a.test_message'
+    },
+    10: {
+      name: 'test',
+      fieldType: 7,
+      type: Number
+    }
+  };
+  goog.proto2.Message.set$Metadata(MessageType, descriptorObj);
 
-  messageType.descriptor_ = descriptor;
-
+  var descriptor = MessageType.getDescriptor();
+  var fieldDescriptor = descriptor.getFields()[0];
+  assertEquals('10', fieldDescriptor.getTag());
   assertEquals(descriptor, fieldDescriptor.getContainingType());
 }
 

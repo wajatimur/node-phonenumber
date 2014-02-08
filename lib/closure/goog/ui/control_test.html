@@ -72,7 +72,6 @@ Author: attila@google.com (Attila Bodis)
       control.dispose();
       expectedFailures.handleTearDown();
       goog.dom.removeChildren(sandbox);
-      goog.events.removeAll();
       resetEventCount();
     }
 
@@ -155,7 +154,7 @@ Author: attila@google.com (Attila Bodis)
      */
     function isMacSafari3() {
       return goog.userAgent.WEBKIT && goog.userAgent.MAC &&
-          !goog.userAgent.isVersion('527');
+          !goog.userAgent.isVersionOrHigher('527');
     }
 
     /**
@@ -2136,6 +2135,11 @@ Author: attila@google.com (Attila Bodis)
       assertTrue('Control must highlight on mouseup', control.isHighlighted());
       assertTrue('Action must have been performed', actionPerformed);
       assertFalse('Control must have been deactivated', control.isActive());
+    }
+
+    function testDefaultConstructor() {
+      var control = new goog.ui.Control();
+      assertNull(control.getContent());
     }
   </script>
 </body>

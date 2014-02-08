@@ -12,6 +12,9 @@ See the COPYING file for details.
 <script src="../../base.js"></script>
 <script>
   goog.require('goog.dom');
+  goog.require('goog.dom.classlist');
+  goog.require('goog.events.EventHandler');
+  goog.require('goog.testing.events');
   goog.require('goog.testing.jsunit');
   goog.require('goog.ui.emoji.EmojiPicker');
   goog.require('goog.ui.emoji.SpriteInfo');
@@ -24,6 +27,15 @@ See the COPYING file for details.
 
 <script>
 
+var handler;
+
+function setUp() {
+  handler = new goog.events.EventHandler();
+}
+
+function tearDown() {
+  handler.removeAll();
+}
 
 // 26 emoji
 var emojiGroup1 = [
@@ -466,6 +478,68 @@ function testGetSelectedEmoji() {
 }
 
 
+function testGetSelectedEmoji_click() {
+  var defaultImg = '../../demos/emoji/none.gif';
+  var picker = new goog.ui.emoji.EmojiPicker(defaultImg);
+  picker.setDelayedLoad(false);
+  picker.addEmojiGroup(emojiGroup1[0], emojiGroup1[1]);
+  picker.render();
+
+  var palette = picker.getPage(0);
+  // Artificially select the an emoji
+  palette.setSelectedIndex(2);
+  var element = palette.getSelectedItem();
+  palette.setSelectedIndex(0);  // Select a different emoji.
+
+  var eventSent;
+  handler.listen(picker, goog.ui.Component.EventType.ACTION,
+      function(e) {
+        eventSent = e;
+      })
+  goog.testing.events.fireClickSequence(element, undefined, undefined,
+      { shiftKey: false });
+
+  // Now we should get the first emoji back. See emojiGroup1 above.
+  var emoji = picker.getSelectedEmoji();
+  assertEquals(emoji.getId(), 'std.202');
+  assertEquals(emoji.getUrl(), '../../demos/emoji/202.gif');
+  assertFalse(eventSent.shiftKey);
+
+  picker.dispose();
+}
+
+
+function testGetSelectedEmoji_shiftClick() {
+  var defaultImg = '../../demos/emoji/none.gif';
+  var picker = new goog.ui.emoji.EmojiPicker(defaultImg);
+  picker.setDelayedLoad(false);
+  picker.addEmojiGroup(emojiGroup1[0], emojiGroup1[1]);
+  picker.render();
+
+  var palette = picker.getPage(0);
+  // Artificially select the an emoji
+  palette.setSelectedIndex(3);
+  var element = palette.getSelectedItem();
+  palette.setSelectedIndex(0);  // Select a different emoji.
+
+  var eventSent;
+  handler.listen(picker, goog.ui.Component.EventType.ACTION,
+      function(e) {
+        eventSent = e;
+      })
+  goog.testing.events.fireClickSequence(element, undefined, undefined,
+      { shiftKey: true });
+
+  // Now we should get the first emoji back. See emojiGroup1 above.
+  var emoji = picker.getSelectedEmoji();
+  assertEquals(emoji.getId(), 'std.203');
+  assertEquals(emoji.getUrl(), '../../demos/emoji/203.gif');
+  assertTrue(eventSent.shiftKey);
+
+  picker.dispose();
+}
+
+
 /**
  * Checks and verifies the structure of a non-progressively-rendered
  * emojipicker.
@@ -480,7 +554,7 @@ function checkStructureForNonProgressivePicker(palette, emoji) {
     palette.setSelectedIndex(i);
     var emojiInfo = emoji[1][i];
     var cell = palette.getSelectedItem();
-    var inner = cell.firstChild;
+    var inner = /** @type {Element} */ (cell.firstChild);
 
     // Check that the cell is a div wrapped around something else, and that the
     // outer div contains the goomoji attribute
@@ -497,7 +571,7 @@ function checkStructureForNonProgressivePicker(palette, emoji) {
       var cssClass = spriteInfo.getCssClass();
       if (cssClass) {
         assertTrue('Sprite should have its CSS class set',
-            goog.dom.classes.has(inner, cssClass));
+            goog.dom.classlist.contains(inner, cssClass));
       } else {
         checkPathsEndWithSameFile(
             goog.style.getStyle(inner, 'background-image'),
@@ -535,7 +609,7 @@ function checkStructureForProgressivePicker(palette, emoji) {
     palette.setSelectedIndex(i);
     var emojiInfo = emoji[1][i];
     var cell = palette.getSelectedItem();
-    var inner = cell.firstChild;
+    var inner = /** @type {Element} */ (cell.firstChild);
 
     // Check that the cell is a div wrapped around something else, and that the
     // outer div contains the goomoji attribute
@@ -552,7 +626,7 @@ function checkStructureForProgressivePicker(palette, emoji) {
       if (cssClass) {
         assertEquals("DIV", inner.tagName);
         assertTrue('Sprite should have its CSS class set',
-            goog.dom.classes.has(inner, cssClass));
+            goog.dom.classlist.contains(inner, cssClass));
       } else {
         // There's an inner div wrapping an img tag
         assertEquals("DIV", inner.tagName);
@@ -594,7 +668,7 @@ function checkPostLoadStructureForFastLoadNonProgressivePicker(palette, emoji) {
     palette.setSelectedIndex(i);
     var emojiInfo = emoji[1][i];
     var cell = palette.getSelectedItem();
-    var inner = cell.firstChild;
+    var inner = /** @type {Element} */ (cell.firstChild);
 
     // Check that the cell is a div wrapped around something else, and that the
     // outer div contains the goomoji attribute
@@ -626,7 +700,7 @@ function checkPostLoadStructureForFastLoadNonProgressivePicker(palette, emoji) {
         var cssClass = spriteInfo.getCssClass();
         if (cssClass) {
           assertTrue('Sprite should have its CSS class set',
-              goog.dom.classes.has(inner, cssClass));
+              goog.dom.classlist.contains(inner, cssClass));
         } else {
           checkPathsEndWithSameFile(
               goog.style.getStyle(inner, 'background-image'),
@@ -664,7 +738,7 @@ function checkPostLoadStructureForFastLoadProgressivePicker(palette, emoji) {
     palette.setSelectedIndex(i);
     var emojiInfo = emoji[1][i];
     var cell = palette.getSelectedItem();
-    var inner = cell.firstChild;
+    var inner = /** @type {Element} */ (cell.firstChild);
 
     // Check that the cell is a div wrapped around something else, and that the
     // outer div contains the goomoji attribute
@@ -694,7 +768,7 @@ function checkPostLoadStructureForFastLoadProgressivePicker(palette, emoji) {
         if (cssClass) {
           assertEquals("DIV", inner.tagName);
           assertTrue('Sprite should have its CSS class set',
-              goog.dom.classes.has(inner, cssClass));
+              goog.dom.classlist.contains(inner, cssClass));
         } else {
           // There's an inner div wrapping an img tag
           assertEquals("DIV", inner.tagName);

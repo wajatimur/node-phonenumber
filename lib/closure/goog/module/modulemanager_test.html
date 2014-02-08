@@ -28,6 +28,7 @@ See the COPYING file for details.
 <body>
 <script>
   var clock;
+  var requestCount = 0
 
   function setUpPage() {
     clock = new goog.testing.MockClock(true);
@@ -35,6 +36,10 @@ See the COPYING file for details.
 
   function tearDownPage() {
     clock.dispose();
+  }
+
+  function setUp() {
+    requestCount = 0;
   }
 
   function getModuleManager(infoMap) {
@@ -51,6 +56,7 @@ See the COPYING file for details.
     return {
       loadModules: function(ids, moduleInfoMap, opt_successFn, opt_errFn,
           opt_timeoutFn) {
+        requestCount++;
         setTimeout(goog.bind(this.onLoad, this, ids.concat(), 0), 5);
       },
       onLoad: function(ids, idxLoaded) {
@@ -68,6 +74,7 @@ See the COPYING file for details.
     return {
       loadModules: function(ids, moduleInfoMap, opt_successFn, opt_errFn,
           opt_timeoutFn) {
+        requestCount++;
         setTimeout(function() {
           moduleMgr.beforeLoadModuleCode(ids[0]);
           moduleMgr.setLoaded(ids[0]);
@@ -84,6 +91,14 @@ See the COPYING file for details.
       loadModules: function(ids, moduleInfoMap, opt_successFn, opt_errFn,
           opt_timeoutFn) {
         moduleMgr.beforeLoadModuleCode(ids[0]);
+        setTimeout(function() { opt_errFn(status); }, 5);
+      }};
+  }
+
+  function createUnsuccessfulBatchLoader(moduleMgr, status) {
+    return {
+      loadModules: function(ids, moduleInfoMap, opt_successFn, opt_errFn,
+          opt_timeoutFn) {
         setTimeout(function() { opt_errFn(status); }, 5);
       }};
   }
@@ -343,6 +358,74 @@ See the COPYING file for details.
 
     assertTrue(calledBack);
     assertNull(error);
+  }
+
+  /**
+   * Tests loading 2 modules asserting that the loads happen in parallel
+   * in one unit of time.
+   */
+  function testLoad_concurrent() {
+    var mm = getModuleManager({'a': [], 'b': [], 'c': []});
+    mm.setConcurrentLoadingEnabled(true);
+    mm.setLoader(createSuccessfulNonBatchLoader(mm));
+
+    var calledBack = false;
+    var error = null;
+
+    mm.load('a');
+    mm.load('b');
+    assertEquals(2, requestCount);
+    // Only time for one serialized download.
+    clock.tick(5);
+
+    assertTrue(mm.getModuleInfo('a').isLoaded());
+    assertTrue(mm.getModuleInfo('b').isLoaded());
+  }
+
+  function testLoad_concurrentSecondIsDepOfFist() {
+    var mm = getModuleManager({'a': [], 'b': [], 'c': []});
+    mm.setBatchModeEnabled(true);
+    mm.setConcurrentLoadingEnabled(true);
+    mm.setLoader(createSuccessfulBatchLoader(mm));
+
+    var calledBack = false;
+    var error = null;
+
+    mm.loadMultiple(['a', 'b']);
+    mm.load('b');
+    assertEquals('No 2nd request expected', 1, requestCount);
+    // Only time for one serialized download.
+    clock.tick(5);
+    clock.tick(2); // Makes second module come in from batch requst.
+
+    assertTrue(mm.getModuleInfo('a').isLoaded());
+    assertTrue(mm.getModuleInfo('b').isLoaded());
+  }
+
+  function testLoad_nonConcurrent() {
+    var mm = getModuleManager({'a': [], 'b': [], 'c': []});
+    mm.setLoader(createSuccessfulNonBatchLoader(mm));
+
+    var calledBack = false;
+    var error = null;
+
+    mm.load('a');
+    mm.load('b');
+    assertEquals(1, requestCount);
+    // Only time for one serialized download.
+    clock.tick(5);
+
+    assertTrue(mm.getModuleInfo('a').isLoaded());
+    assertFalse(mm.getModuleInfo('b').isLoaded());
+  }
+
+  function testLoadUnknown() {
+    var mm = getModuleManager({'a': [], 'b': [], 'c': []});
+    mm.setLoader(createSuccessfulNonBatchLoader(mm));
+    var e = assertThrows(function() {
+      mm.load('DoesNotExist');
+    });
+    assertEquals('Unknown module: DoesNotExist', e.message);
   }
 
   /**
@@ -1240,6 +1323,21 @@ See the COPYING file for details.
   }
 
   /**
+   * Tests that when loading multiple modules, the input array is not modified
+   * when it has duplicates.
+   */
+  function testLoadMultipleWithDuplicates() {
+    var mm = getModuleManager({'a': [], 'b': []});
+    mm.setBatchModeEnabled(true);
+    mm.setLoader(createSuccessfulBatchLoader(mm));
+
+    var listWithDuplicates = ['a', 'a', 'b'];
+    mm.loadMultiple(listWithDuplicates);
+    assertArrayEquals('loadMultiple should not modify its input',
+        ['a', 'a', 'b'], listWithDuplicates);
+  }
+
+  /**
    * Test loading dependencies transitively.
    */
   function testLoadingDepsInNonBatchMode1() {
@@ -1457,6 +1555,42 @@ See the COPYING file for details.
     clock.tick(5);
     assertTrue(
         'module "r" should be loaded', mm.isModuleLoaded('r'));
+  }
+
+  /**
+   * Tests error loading modules which are retried.
+   */
+  function testErrorLoadingModule_batchMode() {
+    var mm = getModuleManager({
+      'p': ['q'],
+      'q': [],
+      'r': ['q','p']});
+    mm.setLoader(createUnsuccessfulBatchLoader(mm, 500));
+    mm.setBatchModeEnabled(true);
+
+    mm.preloadModule('r');
+    clock.tick(4);
+
+    // A module request is now underway using the unsuccessful loader.
+    // We substitute a successful loader for future module load requests.
+    mm.setLoader(createSuccessfulBatchLoader(mm));
+    clock.tick(1);
+    assertFalse(
+        'module "q" should not be loaded (1)', mm.isModuleLoaded('q'));
+    assertFalse(
+        'module "p" should not be loaded (1)', mm.isModuleLoaded('p'));
+    assertFalse(
+        'module "r" should not be loaded (1)', mm.isModuleLoaded('r'));
+
+    // Failed loads are automatically retried after a backOff.
+    clock.tick(5 + mm.getBackOff_());
+    assertTrue('module "q" should be loaded', mm.isModuleLoaded('q'));
+    clock.tick(2);
+    assertTrue(
+        'module "p" should not be loaded (2)', mm.isModuleLoaded('p'));
+    clock.tick(2);
+    assertTrue(
+        'module "r" should not be loaded (2)', mm.isModuleLoaded('r'));
   }
 
   /**
@@ -2003,6 +2137,32 @@ See the COPYING file for details.
 
     mm.consecutiveFailures_++;
     assertEquals(20000, mm.getBackOff_());
+  }
+
+  /**
+   * Tests that the IDLE callbacks are executed for active->idle transitions
+   * after setAllModuleInfoString with currently loading modules.
+   */
+  function testIdleCallbackWithInitialModules() {
+    var callback = goog.testing.recordFunction();
+
+    var mm = new goog.module.ModuleManager();
+    mm.setAllModuleInfoString('a', ['a']);
+    mm.registerCallback(
+        goog.module.ModuleManager.CallbackType.IDLE, callback);
+
+    assertTrue(mm.isActive());
+
+    mm.beforeLoadModuleCode('a');
+
+    assertEquals(0, callback.getCallCount());
+
+    mm.setLoaded('a');
+    mm.afterLoadModuleCode('a');
+
+    assertFalse(mm.isActive());
+
+    assertEquals(1, callback.getCallCount());
   }
 </script>
 </body>
