@@ -5,7 +5,7 @@
     },
   "name": "node-phonenumber",
   "description": "Google's phone number handling library ported to Node",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "main": "lib/index.js",
   "directories": {
     "lib": "lib",
@@ -29,13 +29,7 @@
     "node": ">= 0.6"
   },
   "dependencies": {
-    "closure": "1.0.2"
-  },
-  "devDependencies": {
-    "mocha": "1.x"
-  },
-  "scripts": {
-    "test": "mocha"
+    "closure": "1.0.3"
   },
   "readmeFilename": "README.md",
   "bugs": {
