@@ -5,11 +5,10 @@
     },
   "name": "node-phonenumber",
   "description": "Google's phone number handling library ported to Node",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "main": "lib/index.js",
   "directories": {
-    "lib": "lib",
-    "test": "test"
+    "lib": "lib"
   },
   "homepage": "http://code.google.com/p/libphonenumber/",
   "keywords": [
