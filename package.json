@@ -1,8 +1,8 @@
 {
-    "author": {
-        "name": "Azri Jamil",
-        "email": "azri@nematix.com"
-    },
+  "author": {
+    "name": "Azri Jamil",
+    "email": "azri@nematix.com"
+  },
   "name": "node-phonenumber",
   "description": "Google's phone number handling library ported to Node",
   "version": "0.1.2",
@@ -33,5 +33,12 @@
   "readmeFilename": "README.md",
   "bugs": {
     "url": "https://github.com/wajatimur/node-phonenumber/issues"
-  }
+  },
+  "devDependencies": {
+    "chai": "^2.1.1",
+    "mocha": "^2.2.1"
+    },
+    "scripts": {
+        "test": "make test"
+    }
 }
