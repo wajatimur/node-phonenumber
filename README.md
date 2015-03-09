@@ -4,10 +4,7 @@ NodeJS port of Google's libPhoneNumber
 
 ## Installation
 
-### Installing node-phonenumber
-```
-npm install node-phonenumber
-```
+    npm install node-phonenumber
 
 ## Example Usage
 ```javascript
@@ -21,6 +18,19 @@ console.log(toNumber);
 
 $ +60 13-934 8815
 ```
+
+## Testing
+
+    npm test
+
+Test will be run to verify the phone number format of MY country, test for another
+countries are welcome. Please see the test file in `test\index.js` and insert below
+code as example.
+
+    it('parse XX phone number format', function(){
+        var phone_xx = phone_util.parse('012345678','XX');
+        phone_util.format(phone_xx, phone.PhoneNumberFormat.INTERNATIONAL).should.equal('+10 12345678');
+    });
 
 ## Author & Credits
 * Original Author - https://github.com/mattbornski
