@@ -18,6 +18,8 @@ var phoneNumber = phoneUtil.parse('0139348815','MY');
 var toNumber = phoneUtil.format(phoneNumber, phone.PhoneNumberFormat.INTERNATIONAL);
 
 console.log(toNumber);
+
+$ +60 13-934 8815
 ```
 
 ## Author & Credits
