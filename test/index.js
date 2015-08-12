@@ -2,6 +2,32 @@ var should = require('chai').should(),
     phone = require('../lib/index.js'),
     phone_util = phone.PhoneNumberUtil.getInstance();
 
+describe('#parse', function(){
+    it('works', function(){
+        var fn = function() {
+            phone_util.parse('123123123', 'GB');
+        };
+        fn.should.not.throw();
+    });
+
+    it('throws an error with invalid numbers', function(){
+        var fn = function() {
+            phone_util.parse(null);
+        };
+        fn.should.throw();
+        
+        var fn2 = function() {
+            phone_util.parse('213sad');
+        };
+        fn2.should.throw();
+        
+        var fn3 = function() {
+            phone_util.parse('4324+323');
+        };
+        fn3.should.throw();
+    });
+});
+    
 describe('#format', function(){
 
     it('parse MY phone number format', function(){
@@ -19,19 +45,6 @@ describe('#format', function(){
         phone_util.format(number, phone.PhoneNumberFormat.INTERNATIONAL).should.equal('+1 242-234-2353');
     });
 
-    it('validate number', function() {
-        var number;
-
-        number = phone_util.parse('23907','GB');
-        phone_util.isValidNumber(number).should.equal(false);
-
-        number = phone_util.parse('53453455','GB');
-        phone_util.isValidNumber(number).should.equal(false);
-
-        number = phone_util.parse('8453136666','GB');
-        phone_util.isValidNumber(number).should.equal(true);
-    });
-
     it('format in RFC3966', function(){
         var number = phone_util.parse('7239048346','TR');
         phone_util.format(number, phone.PhoneNumberFormat.RFC3966).should.equal('tel:+90-7239048346');
@@ -45,5 +58,20 @@ describe('#format', function(){
     it('format to national', function(){
         var number = phone_util.parse('+90 507 000 0000');
         phone_util.format(number, phone.PhoneNumberFormat.NATIONAL).should.equal('0507 000 0000');
+    });
+});
+
+describe('#format', function(){
+    it('validate number', function() {
+        var number;
+
+        number = phone_util.parse('23907','GB');
+        phone_util.isValidNumber(number).should.equal(false);
+
+        number = phone_util.parse('53453455','GB');
+        phone_util.isValidNumber(number).should.equal(false);
+
+        number = phone_util.parse('8453136666','GB');
+        phone_util.isValidNumber(number).should.equal(true);
     });
 });
