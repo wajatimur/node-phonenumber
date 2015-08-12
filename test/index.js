@@ -29,7 +29,6 @@ describe('#parse', function(){
 });
     
 describe('#format', function(){
-
     it('parse MY phone number format', function(){
         var number = phone_util.parse('0139348815','MY');
         phone_util.format(number, phone.PhoneNumberFormat.INTERNATIONAL).should.equal('+60 13-934 8815');
@@ -63,15 +62,16 @@ describe('#format', function(){
 
 describe('#format', function(){
     it('validate number', function() {
-        var number;
+        phone_util.isValidNumber(
+            phone_util.parse('23907','GB')
+        ).should.equal(false);
 
-        number = phone_util.parse('23907','GB');
-        phone_util.isValidNumber(number).should.equal(false);
+        phone_util.isValidNumber(
+            phone_util.parse('53453455','GB')
+        ).should.equal(false);
 
-        number = phone_util.parse('53453455','GB');
-        phone_util.isValidNumber(number).should.equal(false);
-
-        number = phone_util.parse('8453136666','GB');
-        phone_util.isValidNumber(number).should.equal(true);
+        phone_util.isValidNumber(
+            phone_util.parse('8453136666','GB')
+        ).should.equal(true);
     });
 });
