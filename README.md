@@ -1,10 +1,12 @@
 # node-phonenumber [![Build Status](https://travis-ci.org/wajatimur/node-phonenumber.png?branch=master)](https://travis-ci.org/wajatimur/node-phonenumber)
 
+[![NPM](https://nodei.co/npm/node-phonenumber.png?downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/node-phonenumber/)
+
 NodeJS port of Google's libPhoneNumber
 
 ## Installation
 
-    npm install node-phonenumber
+    npm install node-phonenumber --save
 
 ## Example Usage
 ```javascript
