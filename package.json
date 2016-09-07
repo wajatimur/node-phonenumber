@@ -5,7 +5,7 @@
   },
   "name": "node-phonenumber",
   "description": "Google's phone number handling library ported to Node",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "main": "lib/index.js",
   "directories": {
     "lib": "lib"
@@ -35,8 +35,8 @@
     "url": "https://github.com/wajatimur/node-phonenumber/issues"
   },
   "devDependencies": {
-    "chai": "^2.1.1",
-    "mocha": "^2.2.1"
+    "chai": "^2.3.0",
+    "mocha": "^2.5.3"
   },
   "scripts": {
     "test": "make test"
