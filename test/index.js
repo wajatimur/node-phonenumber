@@ -56,7 +56,7 @@ describe('#format', function(){
 
     it('format to national', function(){
         var number = phone_util.parse('+90 507 000 0000');
-        phone_util.format(number, phone.PhoneNumberFormat.NATIONAL).should.equal('0507 000 0000');
+        phone_util.format(number, phone.PhoneNumberFormat.NATIONAL).should.equal('0507 000 00 00');
     });
 });
 
@@ -73,5 +73,10 @@ describe('#format', function(){
         phone_util.isValidNumber(
             phone_util.parse('8453136666','GB')
         ).should.equal(true);
+	
+	phone_util.isValidNumber(
+            phone_util.parse('917888042551','IN')
+        ).should.equal(true);
+
     });
 });
