@@ -3,3 +3,7 @@ node_js:
   - "0.12"
   - "0.11"
   - "0.10"
+deploy:
+  provider: npm
+  email: "azri@nematx.com"
+  api_key: "bd782530-4cf5-4a12-99d0-497b5a70c2a2"
